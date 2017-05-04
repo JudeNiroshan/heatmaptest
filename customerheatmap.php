@@ -117,6 +117,43 @@ header("Location: exporthourlycustomercount.php?from=".$_REQUEST['from']."&to=".
 
     <!-- Custom Theme Style -->
     <link href="build/css/custom.min.css" rel="stylesheet">
+	<style>
+	.grid_row {
+		  box-sizing: border-box;
+		  display: -webkit-box;
+		  display: -ms-flexbox;
+		  display: flex;
+		  -webkit-box-flex: 0;
+		  -ms-flex: 0 1 auto;
+		  flex: 0 1 auto;
+		  -webkit-box-orient: horizontal;
+		  -webkit-box-direction: normal;
+		  -ms-flex-direction: row;
+		  flex-direction: row;
+		  -ms-flex-wrap: wrap;
+		  flex-wrap: wrap;
+		  margin-right: -0.5rem;
+		  margin-left: -0.5rem;
+		}
+
+		.grid_col-xs {
+		  box-sizing: border-box;
+		  -webkit-box-flex: 0;
+		  -ms-flex: 0 0 auto;
+		  flex: 0 0 auto;
+		  padding-right: 0.5rem;
+		  padding-left: 0.5rem;
+		}
+
+		.grid_col-xs {
+		  -webkit-box-flex: 1;
+		  -ms-flex-positive: 1;
+		  flex-grow: 1;
+		  -ms-flex-preferred-size: 0;
+		  flex-basis: 0;
+		  max-width: 100%;
+		}
+	</style>
   </head>
 
   <body class="nav-md">
@@ -236,6 +273,9 @@ header("Location: exporthourlycustomercount.php?from=".$_REQUEST['from']."&to=".
 			  
           <div class="x_panel">               
                   <div class="x_content">
+				  <script type="text/javascript">
+					var allImageData = [];
+				  </script>
                     <?php
                         $blob_result = mysql_query("SELECT z.ZoneImage as blob, z.locationID as lid, z.zoneID as zid FROM location l, zonemaster z WHERE l.locationID = z.locationID $locatinquery $zonequery $datequery");
                         
@@ -277,8 +317,12 @@ header("Location: exporthourlycustomercount.php?from=".$_REQUEST['from']."&to=".
 									?>
 									
 									var JSONData_holder = {};
+									JSONData_holder.elementID = 'unq<?php echo"$unique_id"; ?>';
+									JSONData_holder.x = X;
+									JSONData_holder.y = Y;
+									JSONData_holder.c = C;
 									
-									
+									allImageData.push(JSONData_holder);
 									
 							  </script>
 							  <div class="grid_row">
@@ -287,18 +331,71 @@ header("Location: exporthourlycustomercount.php?from=".$_REQUEST['from']."&to=".
 										<?php if(mysql_num_rows($blob_result) == 1){?>
 						
 													
-													<div id="unq<?php echo"$unique_id"; ?>" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+													<div id="unq<?php echo"$unique_id"; ?>" style="background-image: url(data:image/png;base64,<?php echo"$img_obj"; ?>);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
 													</div>					
 													
 										<?php }else{?>
 										
 													
-													<div id="parentID" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+													<div id="unq<?php echo"$unique_id"; ?>" style="background-image: url(data:image/png;base64,<?php echo"$img_obj"; ?>);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
 													</div>					
 													
+													<?php 
 													
-													<div id="parentID" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
-													</div>					
+													if($second_single_blob_record = mysql_fetch_array($blob_result)){
+														
+														  $img_obj = $single_blob_record['blob'];
+														  $locationID = $single_blob_record['lid'];
+														  $zoneID = $single_blob_record['zid'];
+
+														  $points = mysql_query("SELECT h.FirstAxis, h.SecondAxis, h.ValueInSec FROM heatmapinfo h WHERE h.locationID = $locationID AND h.zoneID = $zoneID");
+														  
+														  $X = [];
+														  $Y = [];
+														  $C = [];
+														  
+														  while($point_record = mysql_fetch_assoc($points)){
+
+																array_push($X, $point_record['FirstAxis']);
+																array_push($Y, $point_record['SecondAxis']);
+																array_push($Y, $point_record['ValueInSec']);
+														  }
+														  $js_X = json_encode($X);
+														  $js_Y = json_encode($Y);
+														  $js_C = json_encode($C);
+														  
+														  $unique_id = unique_id + 1;
+														  ?>
+														  <script type="text/javascript">
+																var X = [];
+																var Y = [];
+																var C = [];
+																<?php
+																	echo "X = ". $js_X . ";\n";
+																	echo "Y = ". $js_Y . ";\n";
+																	echo "C = ". $js_C . ";\n";
+																?>
+																
+																var JSONData_holder = {};
+																JSONData_holder.elementID = 'unq<?php echo"$unique_id"; ?>';
+																JSONData_holder.x = X;
+																JSONData_holder.y = Y;
+																JSONData_holder.c = C;
+																
+																allImageData.push(JSONData_holder);
+																
+														  </script>
+														  
+														<div id="unq<?php echo"$unique_id"; ?>" style="background-image: url(data:image/png;base64,<?php echo"$img_obj"; ?>);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+														</div>
+													<?php
+													}else{?>
+														<div id="parentID" style="background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >&nbsp;
+														</div>
+														
+													<?php 
+													}?>
+																		
 													
 										<?php } ?>
 										
@@ -311,9 +408,7 @@ header("Location: exporthourlycustomercount.php?from=".$_REQUEST['from']."&to=".
 						}
 						?>
 						
-						
-							
-							
+	
 						
                   </div>
           </div>
@@ -651,6 +746,58 @@ $TotalHourValue_array = implode(", ", $TotalHourValue_array);
   } );
   </script>
   <!------Date range picker------------->
+  
+  <!------Heatmap.js------------->
+  <script>
+  
+		var computeRelativePosition = (point, relativeTo) => {
+            return (point / 100) * relativeTo;
+        };
+	
+		function drawOverlayHeatmap(dataJSON){
+		
+			var elementName = dataJSON.elementID;
+			var X = dataJSON.x;
+			var Y = dataJSON.y;
+			var C = dataJSON.c;
+			var heatmap = h337.create({
+                container: document.getElementById(elementName),
+                // a waterdrop gradient ;-)
+                // gradient: { .1: 'rgba(0,0,0,0)', 0.25: "rgba(0,0,90, .6)", .6: "blue", .9: "cyan", .95: 'rgba(255,255,255,.4)' },
+                maxOpacity: .6,
+                radius: 10,
+                blur: .90
+            });
+
+            var width = (window.getComputedStyle(document.getElementById(elementName)).width.replace(/px/, ''));
+            var height = (window.getComputedStyle(document.getElementById(elementName)).height.replace(/px/, ''));
+			console.log(height);
+
+            var generate = function (iterator) {
+
+                var x = (computeRelativePosition(X[iterator], width)) >> 0;
+                var y = (computeRelativePosition(Y[iterator], height)) >> 0;
+                var c = (C[iterator] * 100) >> 0;
+
+                // add the datapoint to heatmap instance
+                heatmap.addData({ x: x, y: y, value: c, radius: 50 });
+            };
+            for (i = 0; i < X.length; i++) {
+                generate(i);
+            }
+		}
+	
+		setTimeout(function() { 
+
+			var arrayLength = allImageData.length;
+			for (var i = 0; i < arrayLength; i++) {
+				var dataObj = allImageData[i];
+				drawOverlayHeatmap(dataObj);
+			}
+		
+		}, 1);
+
+    </script>
 	
 	
 	</body>
