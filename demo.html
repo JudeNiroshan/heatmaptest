@@ -12,6 +12,7 @@
 	<script src="js/skel.min.js"></script>
 	<script src="js/skel-layers.min.js"></script>
 	<script src="js/init.js"></script>
+	<script src="js/heatmap.js"></script>
 	<noscript>
 		<link rel="stylesheet" href="css/skel.css" />
 		<link rel="stylesheet" href="css/style.css" />
@@ -20,12 +21,42 @@
 	<!--[if lte IE 9]><link rel="stylesheet" href="css/ie/v9.css" /><![endif]-->
 	<!--[if lte IE 8]><link rel="stylesheet" href="css/ie/v8.css" /><![endif]-->
 	<style>
-		#heatmapContainer {
-			background-image: url(img/retailshop.jpg);
-			width: 682px;
-			height: 512px;
-			text-align: center;
+		.grid_row {
+		  box-sizing: border-box;
+		  display: -webkit-box;
+		  display: -ms-flexbox;
+		  display: flex;
+		  -webkit-box-flex: 0;
+		  -ms-flex: 0 1 auto;
+		  flex: 0 1 auto;
+		  -webkit-box-orient: horizontal;
+		  -webkit-box-direction: normal;
+		  -ms-flex-direction: row;
+		  flex-direction: row;
+		  -ms-flex-wrap: wrap;
+		  flex-wrap: wrap;
+		  margin-right: -0.5rem;
+		  margin-left: -0.5rem;
 		}
+
+		.grid_col-xs {
+		  box-sizing: border-box;
+		  -webkit-box-flex: 0;
+		  -ms-flex: 0 0 auto;
+		  flex: 0 0 auto;
+		  padding-right: 0.5rem;
+		  padding-left: 0.5rem;
+		}
+
+		.grid_col-xs {
+		  -webkit-box-flex: 1;
+		  -ms-flex-positive: 1;
+		  flex-grow: 1;
+		  -ms-flex-preferred-size: 0;
+		  flex-basis: 0;
+		  max-width: 100%;
+		}
+
 	</style>
 </head>
 
@@ -36,6 +67,45 @@
 		<h1><a href="index.html">Heatmap.js prototype <span>by DokiComing</span></a></h1>
 
 	</header>
+	<script type="text/javascript">
+
+        var computeRelativePosition = (point, relativeTo) => {
+            return (point / 100) * relativeTo;
+        };
+	
+		function drawOverlayHeatmap(dataJSON){
+		
+			var elementName = dataJSON.elementID;
+			var X = dataJSON.x;
+			var Y = dataJSON.y;
+			var C = dataJSON.c;
+			var heatmap = h337.create({
+                container: document.getElementById(elementName),
+                // a waterdrop gradient ;-)
+                // gradient: { .1: 'rgba(0,0,0,0)', 0.25: "rgba(0,0,90, .6)", .6: "blue", .9: "cyan", .95: 'rgba(255,255,255,.4)' },
+                maxOpacity: .6,
+                radius: 10,
+                blur: .90
+            });
+
+            var width = (window.getComputedStyle(document.getElementById(elementName)).width.replace(/px/, ''));
+            var height = (window.getComputedStyle(document.getElementById(elementName)).height.replace(/px/, ''));
+			console.log(height);
+
+            var generate = function (iterator) {
+
+                var x = (computeRelativePosition(X[iterator], width)) >> 0;
+                var y = (computeRelativePosition(Y[iterator], height)) >> 0;
+                var c = (C[iterator] * 100) >> 0;
+
+                // add the datapoint to heatmap instance
+                heatmap.addData({ x: x, y: y, value: c, radius: 50 });
+            };
+            for (i = 0; i < X.length; i++) {
+                generate(i);
+            }
+		}
+    </script>
 
 	<!-- Main -->
 	<section id="main" class="wrapper style1">
@@ -49,9 +119,23 @@
 
 				<!-- Text -->
 				<section>
-					<div id="heatmapContainerWrapper">
-						<div id="heatmapContainer">
-
+					<div id="heatmapGrid">
+						<div class="grid_row">
+							<div id="ImageWrapper" class="grid_col-xs">
+								<div id="parentID" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+								</div>					
+							</div>
+						</div>
+						</br>
+						<div class="grid_row">
+							<div id="ImageWrapper" class="grid_col-xs">
+								<div id="parentID" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+								</div>					
+							</div>
+							<div id="ImageWrapper" class="grid_col-xs">
+								<div id="parentID" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+								</div>					
+							</div>
 						</div>
 					</div>
 					<hr />
@@ -78,42 +162,23 @@
 		</ul>
 	</footer>
 
-	<script src="js/heatmap.js"></script>
+	
     <script>
-        var X = new Array(10, 10, 10, 30, 10, 30, 10, 20, 30, 40, 50, 60, 70, 80, 50, 60, 70, 80);
-        var Y = new Array(10, 30, 10, 50, 10, 50, 30, 20, 10, 20, 10, 10, 10, 100, 10, 10, 10, 100);
-        var C = new Array(5, 10, 7, 20, 5, 20, 5, 10, 7, 20, 5, 20, 5, 10, 7, 20, 5, 20);
-        var computeRelativePosition = (point, relativeTo) => {
-            return (point / 100) * relativeTo;
-        };
-        window.onload = function () {
-
-            var heatmap = h337.create({
-                container: document.getElementById('heatmapContainer'),
-                // a waterdrop gradient ;-)
-                // gradient: { .1: 'rgba(0,0,0,0)', 0.25: "rgba(0,0,90, .6)", .6: "blue", .9: "cyan", .95: 'rgba(255,255,255,.4)' },
-                maxOpacity: .6,
-                radius: 10,
-                blur: .90
-            });
-
-            var width = (+window.getComputedStyle(document.getElementById('heatmapContainer')).width.replace(/px/, ''));
-            var height = (+window.getComputedStyle(document.getElementById('heatmapContainer')).height.replace(/px/, ''));
-
-            var generate = function (iterator) {
-
-                var x = (computeRelativePosition(X[iterator], width)) >> 0;
-                var y = (computeRelativePosition(Y[iterator], height)) >> 0;
-                var c = (C[iterator] * 100) >> 0;
-
-                // add the datapoint to heatmap instance
-                heatmap.addData({ x: x, y: y, value: c, radius: 50 });
-            };
-            for (i = 0; i < X.length; i++) {
-                generate(i);
-            }
-
-        };
+	
+		setTimeout(function() { 
+		var elem = document.getElementById('parentID').parentNode.clientWidth;
+		console.log('>>>>>>>>>>>>>'+elem);
+		
+		jsonObj = {};
+		jsonObj.elementID = 'parentID';
+		jsonObj.x = new Array(10, 10, 10, 30, 10, 30, 10, 20, 30, 40, 50, 60, 70, 80, 50, 60, 70, 80);
+		jsonObj.y = new Array(10, 30, 10, 50, 10, 50, 30, 20, 10, 20, 10, 10, 10, 100, 10, 10, 10, 100);
+		jsonObj.c = new Array(5, 10, 7, 20, 5, 20, 5, 10, 7, 20, 5, 20, 5, 10, 7, 20, 5, 20);
+		
+		drawOverlayHeatmap(jsonObj);
+		}, 1);
+		
+		
     </script>
 
 </body>

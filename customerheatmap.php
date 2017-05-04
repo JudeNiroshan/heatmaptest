@@ -19,7 +19,8 @@ $y = substr($q,0,-3);
 	 $to_date=$_REQUEST['to'];
 	 $loc=$_REQUEST['loc'];
 	 $locto=$_REQUEST['locto'];
-   $zone=$_REQUEST['zone'];
+     $zonefrom=$_REQUEST['zonefrom'];
+     $zoneto=$_REQUEST['zoneto'];
 	 
 	 $from = date("Y-m-d", strtotime($from_date) );
 	 $to = date("Y-m-d", strtotime($to_date) );
@@ -31,7 +32,7 @@ $y = substr($q,0,-3);
 	}
 	$alllocationid=implode(",",$alllocationid);
 	if($alllocationid){}else{$alllocationid=0;}
-    $locatinquery="and (LocationID IN (".$alllocationid.") or LocationID='".$loc."')"; 
+    $locatinquery=" and (l.LocationID IN (".$alllocationid.") or l.LocationID='".$loc."')"; 
 	}
 	
 	if(!empty($locto)){ 	
@@ -41,7 +42,7 @@ $y = substr($q,0,-3);
 	}
 	$alllocationid=implode(",",$alllocationid);
 	if($alllocationid){}else{$alllocationid=0;}
-    $locatinquery="and (LocationID IN (".$alllocationid.") or LocationID='".$locto."')"; 
+    $locatinquery=" and (l.LocationID IN (".$alllocationid.") or l.LocationID='".$locto."')"; 
 	}
 	
 	if(!empty($loc) && !empty($locto)){ 	
@@ -51,13 +52,27 @@ $y = substr($q,0,-3);
 	}
 	$alllocationid=implode(",",$alllocationid);
 	if($alllocationid){}else{$alllocationid=0;}
-    $locatinquery="and LocationID BETWEEN '".$loc."' and '".$locto."'"; 
+    $locatinquery=" and l.LocationID BETWEEN '".$loc."' and '".$locto."'"; 
 	}
 	
 	
 	
 	if(!empty($from_date) && !empty($to_date)){
-	  $datequery="and TransactionDate BETWEEN '".$from."' and '".$to."'"; 
+	  $datequery=" and z.TransactionDate BETWEEN '".$from."' and '".$to."'"; 
+	}
+	
+	//When zone from is only selected by the user
+	if(!empty($zonefrom) && empty($zoneto)){
+	  $zonequery=" and (z.zoneID IN ($zonefrom) OR z.zoneID = $zonefrom)"; 
+	}
+	
+	//When zone to is only selected by the user
+	if(empty($zonefrom) && !empty($zoneto)){
+	  $zonequery=" and (z.zoneID IN ($zoneto) OR z.zoneID = $zoneto)"; 
+	}
+	
+	if(!empty($zonefrom) && !empty($zoneto)){
+	  $zonequery=" and z.zoneID BETWEEN $zonefrom AND $zoneto"; 
 	}
 }
 if(isset($_REQUEST['DownloadSubmit'])){
@@ -185,8 +200,10 @@ header("Location: exporthourlycustomercount.php?from=".$_REQUEST['from']."&to=".
 						
 						<label>Location To</label>
 						<input type="text" id="locto" name="locto" value="<?php echo $locto; ?>">
-            <label>Zone</label>
-						<input type="text" id="zone" name="zone" value="<?php echo $zone; ?>">
+						<label>Zone From</label>
+						<input type="text" id="zonefrom" name="zonefrom" value="<?php echo $zone; ?>">
+						<label>Zone To</label>
+						<input type="text" id="zoneto" name="zoneto" value="<?php echo $zone; ?>">
 						
 						<input type="submit" name="submit" value="Search" />
 						
@@ -220,25 +237,84 @@ header("Location: exporthourlycustomercount.php?from=".$_REQUEST['from']."&to=".
           <div class="x_panel">               
                   <div class="x_content">
                     <?php
-                        $blob_result = mysql_query("SELECT z.ZoneImage as blob, z.locationID as lid, z.zoneID as zid FROM location l, zonemaster z WHERE l.locationID = z.locationID $locatinquery $zonequery");
+                        $blob_result = mysql_query("SELECT z.ZoneImage as blob, z.locationID as lid, z.zoneID as zid FROM location l, zonemaster z WHERE l.locationID = z.locationID $locatinquery $zonequery $datequery");
                         
-                        while($single_blob_record = mysql_fetch_array($blob_result)){	
+						if(mysql_num_rows($blob_result) == 0){
+							//No results are there. let the user to know about it.
+							echo "<p>No matching images found</p>";
+						}else{
+							$unique_id = 1;
+							while($single_blob_record = mysql_fetch_array($blob_result)){
+								
+							  $img_obj = $single_blob_record['blob'];
+							  $locationID = $single_blob_record['lid'];
+							  $zoneID = $single_blob_record['zid'];
 
-                          $img_obj = $single_blob_record['blob'];
-                          $locationID = $single_blob_record['lid'];
-                          $zoneID = $single_blob_record['zid'];
+							  $points = mysql_query("SELECT h.FirstAxis, h.SecondAxis, h.ValueInSec FROM heatmapinfo h WHERE h.locationID = $locationID AND h.zoneID = $zoneID");
+							  
+							  $X = [];
+							  $Y = [];
+							  $C = [];
+							  
+							  while($point_record = mysql_fetch_assoc($points)){
 
-                          $points = mysql_query("SELECT h.FirstAxis, h.SecondAxis FROM heatmapinfo h WHERE h.locationID = $locationID AND h.zoneID = $zoneID");
-                          
-                          $X = [];
-                          $Y = [];
-                          
-                          while($point_record = mysql_fetch_assoc($points)){
-
-
-                          }
-                        }
-                    ?>
+									array_push($X, $point_record['FirstAxis']);
+									array_push($Y, $point_record['SecondAxis']);
+									array_push($Y, $point_record['ValueInSec']);
+							  }
+							  $js_X = json_encode($X);
+							  $js_Y = json_encode($Y);
+							  $js_C = json_encode($C);
+							  ?>
+							  <script type="text/javascript">
+									var X = [];
+									var Y = [];
+									var C = [];
+									<?php
+										echo "X = ". $js_X . ";\n";
+										echo "Y = ". $js_Y . ";\n";
+										echo "C = ". $js_C . ";\n";
+									?>
+									
+									var JSONData_holder = {};
+									
+									
+									
+							  </script>
+							  <div class="grid_row">
+									<div id="ImageWrapper" class="grid_col-xs">
+										
+										<?php if(mysql_num_rows($blob_result) == 1){?>
+						
+													
+													<div id="unq<?php echo"$unique_id"; ?>" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+													</div>					
+													
+										<?php }else{?>
+										
+													
+													<div id="parentID" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+													</div>					
+													
+													
+													<div id="parentID" style="background-image: url(img/retailshop.jpg);background-size:100%;width: 100%;height: 0;padding-top: 66.64%;" >
+													</div>					
+													
+										<?php } ?>
+										
+									</div>
+							  </div>
+							<?php
+							$unique_id = unique_id + 1;
+							}
+						
+						}
+						?>
+						
+						
+							
+							
+						
                   </div>
           </div>
 			  
